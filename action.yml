@@ -1,0 +1,38 @@
+name: 'Go Test Action'
+description: 'Run `go test` with rich summary output and annotations.'
+branding:
+  icon: 'check-circle'
+  color: 'green'
+inputs:
+  moduleDirectory:
+    description: 'Directory of go module to test'
+    required: false
+    default: '.'
+  testArguments:
+    description: 'Arguments to `go test`, `-json` will be prepended'
+    required: false
+    default: './...'
+  fromJSONFile:
+    description: 'Parse the specified JSON file, instead of executing go test'
+    required: false
+  omit:
+    description: 'Whitespace separated list of renderable items to omit. See README.md for details.'
+    required: false
+  # deprecated, use `omit` with `untested`
+  omitUntestedPackages:
+    description: 'Omit any packages from summary output that do not have tests'
+    required: false
+    default: 'false'
+  # deprecated, use `omit` with `pie`
+  omitPie:
+    description: 'Omit the pie chart from the summary output'
+    required: false
+    default: 'false'
+  # deprecated, use `omit` with `successful`
+  omitSuccessfulPackages:
+    description: 'Omit any packages from summary output that are successful'
+    required: false
+    default: 'false'
+runs:
+  using: 'node24'
+  main: 'dist/index.js'
