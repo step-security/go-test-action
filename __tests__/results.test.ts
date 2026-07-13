@@ -1,6 +1,7 @@
-import { getTestStdout, mockActionsCoreLogging } from './helpers'
-import { TestEvent, parseTestEvents } from '../src/events'
-import PackageResult from '../src/results'
+import { describe, expect, it } from 'vitest'
+import { getTestStdout } from './helpers.js'
+import { TestEvent, parseTestEvents } from '../src/events.js'
+import PackageResult from '../src/results.js'
 
 const getPackageLevelEvent = (testEvents: TestEvent[]): TestEvent => {
   return testEvents.filter(
@@ -12,10 +13,6 @@ const getPackageLevelEvent = (testEvents: TestEvent[]): TestEvent => {
 }
 
 describe('results', () => {
-  beforeEach(() => {
-    mockActionsCoreLogging()
-  })
-
   it('converts events to results', async () => {
     const stdout = await getTestStdout()
     const testEvents = parseTestEvents(stdout)
@@ -76,6 +73,39 @@ describe('results', () => {
     --- PASS: TestSuccess/Subtest(2) (0.00s)
     --- PASS: TestSuccess/Subtest(3) (0.00s)
 `)
+  })
+
+  it('captures coverage from package events', async () => {
+    const stdout = await getTestStdout()
+    const testEvents = parseTestEvents(stdout)
+    const packageEvent = getPackageLevelEvent(testEvents)
+
+    const coverageEvent: TestEvent = {
+      action: 'output',
+      package: packageEvent.package,
+      test: undefined as unknown as string,
+      output: 'coverage: 73.2% of statements\n',
+      isCached: false,
+      isSubtest: false,
+      isPackageLevel: true,
+      isConclusive: false,
+      coverage: 73.2,
+    }
+
+    const packageResult = new PackageResult(packageEvent, [
+      ...testEvents,
+      coverageEvent,
+    ])
+    expect(packageResult.coverage).toEqual(73.2)
+  })
+
+  it('leaves coverage undefined when not reported', async () => {
+    const stdout = await getTestStdout()
+    const testEvents = parseTestEvents(stdout)
+    const packageEvent = getPackageLevelEvent(testEvents)
+    const packageResult = new PackageResult(packageEvent, testEvents)
+
+    expect(packageResult.coverage).toBeUndefined()
   })
 
   it('filters out any mismatched events by package', async () => {
