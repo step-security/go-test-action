@@ -32,5 +32,8 @@
   },
   "bugs": {
     "url": "https://github.com/step-security/go-test-action/issues"
+  },
+  "overrides": {
+    "undici": "^6.27.0"
   }
 }
