@@ -9,11 +9,18 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
   "exclude": [
     "node_modules",
     "__tests__",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "jest.config.ts",
+    "dist"
+  ],
+  "include": [
+    "src/**/*"
   ]
 }
