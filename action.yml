@@ -12,8 +12,15 @@ inputs:
     description: 'Arguments to `go test`, `-json` will be prepended'
     required: false
     default: './...'
+  cover:
+    description: 'Append `-cover` to the go test command (skipped if testArguments already contains a -cover* flag). Coverage is rendered as a column in the summary table.'
+    required: false
+    default: 'false'
   fromJSONFile:
-    description: 'Parse the specified JSON file, instead of executing go test'
+    description: 'Alias for fromJSONFiles with a single file'
+    required: false
+  fromJSONFiles:
+    description: 'Parse one or more JSON files (newline-separated) and generate a combined summary'
     required: false
   omit:
     description: 'Whitespace separated list of renderable items to omit. See README.md for details.'

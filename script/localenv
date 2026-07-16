@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+# fake environment & files for local development
+
+export GITHUB_STEP_SUMMARY="tmp/summary.md"
+mkdir -p tmp/
+echo -n "" > $GITHUB_STEP_SUMMARY
+
+export INPUT_MODULEDIRECTORY="tmp/go-test-example"
+if [[ ! -d "$INPUT_MODULEDIRECTORY" ]]; then
+  git clone https://github.com/robherley/go-test-example $INPUT_MODULEDIRECTORY
+fi
+
+export INPUT_TESTARGUMENTS="./..."

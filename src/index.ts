@@ -1,7 +1,10 @@
-import * as fs from 'fs'
 import * as core from '@actions/core'
-import axios, {isAxiosError} from 'axios'
-import Runner from './runner'
+import Runner from './runner.js'
+
+new Runner().run().catch(err => {
+  core.error(err)
+  process.exit(1)
+})
 
 async function validateSubscription() {
   const eventPath = process.env.GITHUB_EVENT_PATH
@@ -42,13 +45,3 @@ async function validateSubscription() {
     core.info('Timeout or API not reachable. Continuing to next step.');
   }
 }
-
-async function main() {
-  await validateSubscription();
-  await new Runner().run();
-}
-
-main().catch(err => {
-  core.error(err)
-  process.exit(1)
-})

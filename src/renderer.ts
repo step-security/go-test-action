@@ -1,16 +1,25 @@
 import * as core from '@actions/core'
-import type { SummaryTableRow } from '@actions/core/lib/summary'
 
-import type { ConclusionResults } from './results'
-import PackageResult from './results'
-import { OmitOption } from './inputs'
+import type { ConclusionResults } from './results.js'
+
+export interface SummaryTableCell {
+  data: string
+  header?: boolean
+  colspan?: string
+  rowspan?: string
+}
+
+export type SummaryTableRow = (SummaryTableCell | string)[]
+
+import PackageResult from './results.js'
+import { OmitOption } from './inputs.js'
 
 import type {
   TestEvent,
   TestEventAction,
   TestEventActionConclusion,
-} from './events'
-import { conclusiveTestEvents } from './events'
+} from './events.js'
+import { conclusiveTestEvents } from './events.js'
 
 class Renderer {
   moduleName: string | null
@@ -18,17 +27,24 @@ class Renderer {
   stderr: string
   omit: Set<OmitOption>
   packageResults: PackageResult[]
-  headers: SummaryTableRow = [
-    { data: '📦 Package', header: true },
-    { data: '🟢 Passed', header: true },
-    { data: '🔴 Failed', header: true },
-    { data: '🟡 Skipped', header: true },
-    { data: '⏳ Duration', header: true },
-  ]
   totalConclusions: ConclusionResults = {
     pass: 0,
     fail: 0,
     skip: 0,
+  }
+
+  get headers(): SummaryTableRow {
+    const headers: SummaryTableRow = [
+      { data: '📦 Package', header: true },
+      { data: '🟢 Passed', header: true },
+      { data: '🔴 Failed', header: true },
+      { data: '🟡 Skipped', header: true },
+      { data: '⏳ Duration', header: true },
+    ]
+    if (this.hasCoverage()) {
+      headers.push({ data: '📊 Coverage', header: true, colspan: '2' })
+    }
+    return headers
   }
 
   constructor(
@@ -68,9 +84,40 @@ class Renderer {
       .addRaw(this.renderSummaryText())
       .addRaw(this.renderPie())
       .addRaw('</div>')
-      .addTable(rows)
+      .addRaw(this.renderTable(rows))
       .addRaw(this.renderStderr())
       .write()
+  }
+
+  /**
+   * Renders the results table. Equivalent to core.summary.addTable, but emits a
+   * centered <table>. GitHub renders tables as `display: block; width:
+   * max-content`, and the deprecated align="center" attribute maps to auto
+   * inline margins in the UA stylesheet, which centers that block.
+   * @param rows the table rows to render
+   * @returns stringified HTML table
+   */
+  private renderTable(rows: SummaryTableRow[]): string {
+    const body = rows
+      .map(row => {
+        const cells = row
+          .map(cell => {
+            if (typeof cell === 'string') {
+              return `<td>${cell}</td>`
+            }
+            const tag = cell.header ? 'th' : 'td'
+            const attrs = [
+              cell.colspan ? ` colspan="${cell.colspan}"` : '',
+              cell.rowspan ? ` rowspan="${cell.rowspan}"` : '',
+            ].join('')
+            return `<${tag}${attrs}>${cell.data}</${tag}>`
+          })
+          .join('')
+        return `<tr>${cells}</tr>`
+      })
+      .join('')
+
+    return `<table align="center">${body}</table>`
   }
 
   /**
@@ -102,10 +149,10 @@ class Renderer {
 
     const packageResults: PackageResult[] = []
     for (let pkgEvent of pkgLevelConclusiveEvents) {
-      const otherPackageEvents = this.testEvents.filter(
-        e => e.package === pkgEvent.package && !e.isPackageLevel
+      const allPackageEvents = this.testEvents.filter(
+        e => e.package === pkgEvent.package
       )
-      const packageResult = new PackageResult(pkgEvent, otherPackageEvents)
+      const packageResult = new PackageResult(pkgEvent, allPackageEvents)
       for (let [key, value] of Object.entries(packageResult.conclusions)) {
         this.totalConclusions[key as TestEventActionConclusion] += value
       }
@@ -153,7 +200,68 @@ class Renderer {
       summarized += ` (${conclusionText})`
     }
 
+    const overall = this.overallCoverage()
+    if (overall !== undefined) {
+      summarized += `<br>${this.coverageBar(overall)} ${this.coveragePct(
+        overall
+      )} coverage`
+    }
+
     return summarized
+  }
+
+  /**
+   * Whether any package reports a coverage percentage
+   */
+  hasCoverage(): boolean {
+    return this.packageResults.some(r => r.coverage !== undefined)
+  }
+
+  /**
+   * Mean coverage across packages that report it, or undefined if none do
+   */
+  overallCoverage(): number | undefined {
+    const coverages = this.packageResults
+      .map(r => r.coverage)
+      .filter((c): c is number => c !== undefined)
+    if (coverages.length === 0) {
+      return undefined
+    }
+    return coverages.reduce((a, b) => a + b, 0) / coverages.length
+  }
+
+  private coverageBar(value: number): string {
+    const segments = 10
+    const clamped = Math.max(0, Math.min(100, value))
+    const filled = Math.round((clamped / 100) * segments)
+    const bar = '█'.repeat(filled) + '░'.repeat(segments - filled)
+    return `<code>${bar}</code>`
+  }
+
+  private coveragePct(value: number): string {
+    // single decimal, but drop a trailing ".0" (e.g. 100.0 -> 100, 68.4 -> 68.4)
+    return `${value.toFixed(1).replace(/\.0$/, '')}%`
+  }
+
+  /**
+   * Strips the module name prefix from a package import path, since the module
+   * name is already displayed once in the summary heading. Returns the path
+   * relative to the module root (e.g. "internal/foo"), "." for the module root
+   * itself, or the unmodified path when there's no module name to strip.
+   * @param pkg the full package import path
+   * @returns the package path relative to the module
+   */
+  private relativePackage(pkg: string): string {
+    if (!this.moduleName) {
+      return pkg
+    }
+    if (pkg === this.moduleName) {
+      return '.'
+    }
+    if (pkg.startsWith(`${this.moduleName}/`)) {
+      return pkg.slice(this.moduleName.length + 1)
+    }
+    return pkg
   }
 
   /**
@@ -205,24 +313,32 @@ class Renderer {
       }</code></pre></details>`
     }
 
+    const pkg = packageResult.packageEvent.package
+    const isMain = pkg === this.moduleName
     const pkgName = `${this.emojiFor(
       packageResult.packageEvent.action
-    )} <code>${packageResult.packageEvent.package}${
-      packageResult.packageEvent.package === this.moduleName ? ' (main)' : ''
-    }</code>`
+    )} <code>${this.relativePackage(pkg)}${isMain ? ' (main)' : ''}</code>`
 
-    const packageRows: SummaryTableRow[] = [
-      [
-        pkgName,
-        packageResult.conclusions.pass.toString(),
-        packageResult.conclusions.fail.toString(),
-        packageResult.conclusions.skip.toString(),
-        `${(packageResult.packageEvent.elapsed || 0) * 1000}ms`,
-      ],
+    const hasCoverage = this.hasCoverage()
+    const row: SummaryTableRow = [
+      pkgName,
+      packageResult.conclusions.pass.toString(),
+      packageResult.conclusions.fail.toString(),
+      packageResult.conclusions.skip.toString(),
+      `${(packageResult.packageEvent.elapsed || 0) * 1000}ms`,
     ]
+    if (hasCoverage) {
+      if (packageResult.coverage !== undefined) {
+        row.push(this.coveragePct(packageResult.coverage))
+        row.push(this.coverageBar(packageResult.coverage))
+      } else {
+        row.push({ data: '—', colspan: '2' })
+      }
+    }
 
+    const packageRows: SummaryTableRow[] = [row]
     if (details) {
-      packageRows.push([{ data: details, colspan: '5' }])
+      packageRows.push([{ data: details, colspan: hasCoverage ? '7' : '5' }])
     }
 
     return packageRows

@@ -1,10 +1,11 @@
+import { beforeEach, describe, expect, it, vi, type MockedFunction } from 'vitest'
 import * as core from '@actions/core'
-import { OmitOption, getInputs } from '../src/inputs'
+import { OmitOption, getInputs } from '../src/inputs.js'
 
-jest.mock('@actions/core')
+vi.mock('@actions/core')
 
-const mockGetInput = core.getInput as jest.MockedFunction<typeof core.getInput>
-const mockGetBooleanInput = core.getBooleanInput as jest.MockedFunction<
+const mockGetInput = core.getInput as MockedFunction<typeof core.getInput>
+const mockGetBooleanInput = core.getBooleanInput as MockedFunction<
   typeof core.getBooleanInput
 >
 
@@ -12,9 +13,13 @@ const mockInput = (name: string, value: string) => {
   mockGetInput.mockImplementation((n: string) => (n === name ? value : ''))
 }
 
+const mockInputs = (inputs: Record<string, string>) => {
+  mockGetInput.mockImplementation((n: string) => inputs[n] ?? '')
+}
+
 describe('renderer', () => {
   beforeEach(() => {
-    jest.resetAllMocks()
+    vi.resetAllMocks()
   })
 
   it('uses default values', () => {
@@ -24,9 +29,18 @@ describe('renderer', () => {
     expect(inputs).toEqual({
       moduleDirectory: '.',
       testArguments: ['./...'],
-      fromJSONFile: null,
+      fromJSONFiles: null,
+      cover: false,
       omit: new Set(),
     })
+  })
+
+  it('parses cover', () => {
+    mockInput('cover', 'true')
+    mockGetBooleanInput.mockReturnValueOnce(true)
+    const inputs = getInputs()
+
+    expect(inputs.cover).toBe(true)
   })
 
   it('parses moduleDirectory', () => {
@@ -43,11 +57,36 @@ describe('renderer', () => {
     expect(inputs.testArguments).toEqual(['foo', 'bar'])
   })
 
-  it('parses fromJSONFile', () => {
+  it('parses fromJSONFile as alias for fromJSONFiles', () => {
     mockInput('fromJSONFile', 'foo.json')
     const inputs = getInputs()
 
-    expect(inputs.fromJSONFile).toEqual('foo.json')
+    expect(inputs.fromJSONFiles).toEqual(['foo.json'])
+  })
+
+  it('parses fromJSONFiles', () => {
+    mockInput('fromJSONFiles', 'foo.json\nbar.json')
+    const inputs = getInputs()
+
+    expect(inputs.fromJSONFiles).toEqual(['foo.json', 'bar.json'])
+  })
+
+  it('trims whitespace and filters empty lines in fromJSONFiles', () => {
+    mockInput('fromJSONFiles', '  foo.json  \n\n  bar.json\n')
+    const inputs = getInputs()
+
+    expect(inputs.fromJSONFiles).toEqual(['foo.json', 'bar.json'])
+  })
+
+  it('throws when both fromJSONFile and fromJSONFiles are set', () => {
+    mockInputs({
+      fromJSONFile: 'foo.json',
+      fromJSONFiles: 'bar.json\nbaz.json',
+    })
+
+    expect(() => getInputs()).toThrow(
+      'Cannot specify both fromJSONFile and fromJSONFiles'
+    )
   })
 
   it('parses omit', () => {

@@ -1,11 +1,8 @@
-import { getTestStdout, mockActionsCoreLogging } from './helpers'
-import { parseTestEvents } from '../src/events'
+import { describe, expect, it } from 'vitest'
+import { getTestStdout } from './helpers.js'
+import { parseTestEvents } from '../src/events.js'
 
 describe('events', () => {
-  beforeEach(() => {
-    mockActionsCoreLogging()
-  })
-
   it('correctly parses test2json output', async () => {
     const stdout = await getTestStdout()
 
@@ -73,6 +70,22 @@ describe('events', () => {
       const stdout = getStdout(action)
       const testEvents = parseTestEvents(stdout)
       expect(testEvents[0]).toHaveProperty('isConclusive', isConclusive)
+    }
+  })
+
+  it('parses coverage percentage from output', () => {
+    const cases: [string, number | undefined][] = [
+      ['coverage: 87.5% of statements\\n', 87.5],
+      ['coverage: 100.0% of statements\\n', 100.0],
+      ['coverage: 0.0% of statements\\n', 0],
+      ['ok  \\tgithub.com/foo\\t0.123s\\tcoverage: 42.3% of statements\\n', 42.3],
+      ['hello world\\n', undefined],
+    ]
+
+    for (const [output, expected] of cases) {
+      const stdout = `{"Time":"2022-07-10T22:42:11.92576-04:00","Action":"output","Package":"github.com/foo","Output":"${output}"}`
+      const [event] = parseTestEvents(stdout)
+      expect(event.coverage).toEqual(expected)
     }
   })
 
