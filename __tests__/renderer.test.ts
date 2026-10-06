@@ -1,18 +1,24 @@
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from 'vitest'
 import * as fs from 'fs/promises'
 import * as cheerio from 'cheerio'
 
 import {
   getTestStdout,
-  mockActionsCoreLogging,
   createFakeGoModule,
   createSummaryFile,
   removeSummaryFile,
   testSummaryFilePath,
-} from './helpers'
-import { parseTestEvents } from '../src/events'
-import Renderer from '../src/renderer'
-import { SummaryTableCell } from '@actions/core/lib/summary'
-import { OmitOption } from '../src/inputs'
+} from './helpers.js'
+import { parseTestEvents } from '../src/events.js'
+import Renderer, { type SummaryTableCell } from '../src/renderer.js'
+import { OmitOption } from '../src/inputs.js'
 
 const loadSummaryHTML = async (): Promise<cheerio.CheerioAPI> => {
   const file = await fs.readFile(testSummaryFilePath, { encoding: 'utf8' })
@@ -37,7 +43,6 @@ describe('renderer', () => {
   })
 
   beforeEach(async () => {
-    mockActionsCoreLogging()
     await createSummaryFile()
   })
 
@@ -321,7 +326,7 @@ describe('renderer', () => {
   it('scrubs ansi from stderr', async () => {
     const renderer = await getRenderer()
     const placeholder = 'no-ansi-please'
-    renderer.stderr = `\u001b[31m${placeholder}\u001b[0m`
+    renderer.stderr = `[31m${placeholder}[0m`
     await renderer.writeSummary()
     const $ = await loadSummaryHTML()
 
@@ -329,7 +334,7 @@ describe('renderer', () => {
     $(`details:contains(${placeholder})`).each((_, el) => {
       const text = $(el).text()
       if (text.includes(placeholder)) {
-        expect(text).not.toContain('\u001b')
+        expect(text).not.toContain('')
       }
     })
   })
@@ -337,7 +342,7 @@ describe('renderer', () => {
   it('scrubs ansi from test output', async () => {
     const renderer = await getRenderer()
     const placeholder = 'no-ansi-please'
-    renderer.packageResults[1].events[0].output = `\u001b[31m${placeholder}\u001b[0m`
+    renderer.packageResults[1].events[0].output = `[31m${placeholder}[0m`
     await renderer.writeSummary()
     const $ = await loadSummaryHTML()
 
@@ -345,7 +350,7 @@ describe('renderer', () => {
     $(`details:contains(${placeholder})`).each((_, el) => {
       const text = $(el).text()
       if (text.includes(placeholder)) {
-        expect(text).not.toContain('\u001b')
+        expect(text).not.toContain('')
       }
     })
   })

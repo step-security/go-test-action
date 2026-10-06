@@ -5,9 +5,9 @@ import { Writable } from 'stream'
 import * as core from '@actions/core'
 import { exec } from '@actions/exec'
 
-import Renderer from './renderer'
-import { parseTestEvents } from './events'
-import { Inputs, getInputs } from './inputs'
+import Renderer from './renderer.js'
+import { parseTestEvents } from './events.js'
+import { Inputs, getInputs } from './inputs.js'
 
 class Runner {
   inputs: Inputs
@@ -22,9 +22,12 @@ class Runner {
   async run() {
     const moduleName = await this.findModuleName()
 
-    if (this.inputs.fromJSONFile) {
-      const stdout = await readFile(this.inputs.fromJSONFile)
-      const testEvents = parseTestEvents(stdout.toString())
+    if (this.inputs.fromJSONFiles) {
+      const contents = await Promise.all(
+        this.inputs.fromJSONFiles.map(file => readFile(file))
+      )
+      const stdout = contents.map(c => c.toString()).join('\n')
+      const testEvents = parseTestEvents(stdout)
 
       const renderer = new Renderer(
         moduleName,

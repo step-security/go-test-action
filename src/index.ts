@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import * as core from '@actions/core'
 import axios, {isAxiosError} from 'axios'
-import Runner from './runner'
+import Runner from './runner.js'
 
 async function validateSubscription() {
   const eventPath = process.env.GITHUB_EVENT_PATH
