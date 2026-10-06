@@ -1,6 +1,6 @@
 {
   "name": "go-test-action",
-  "version": "0.7.1",
+  "version": "1.1.0",
   "description": "GitHub Action to run go tests with rich summary output and annotations.",
   "type": "module",
   "main": "dist/index.js",
@@ -13,15 +13,15 @@
   "dependencies": {
     "@actions/core": "^3.0.0",
     "@actions/exec": "^3.0.0",
-    "@actions/glob": "^0.6.1",
+    "@actions/glob": "^0.7.0",
     "axios": "^1.20.0"
   },
   "devDependencies": {
-    "@types/node": "^25.0.0",
+    "@types/node": "^25.9.0",
     "@vercel/ncc": "^0.38.4",
-    "cheerio": "^1.1.2",
-    "tsx": "^4.19.2",
-    "typescript": "^5.9.3",
-    "vitest": "^2.1.8"
+    "cheerio": "^1.2.0",
+    "tsx": "^4.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.6"
   }
 }

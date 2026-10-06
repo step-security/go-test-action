@@ -20,13 +20,13 @@ Powered by [Job Summaries](https://github.blog/2022-05-09-supercharging-github-a
 
 ```yaml
 - name: Test
-  uses: step-security/go-test-action@v0
+  uses: step-security/go-test-action@v1
 ```
 
 ## Inputs
 
 ```yaml
-- uses: step-security/go-test-action@v0
+- uses: step-security/go-test-action@v1
   with:
     # Relative path to the directory containing the go.mod of the module you wish to test.
     # Optional. Default is '.'
@@ -95,7 +95,7 @@ jobs:
       run: go build -v ./...
 
     - name: Test
-      uses: step-security/go-test-action@v0
+      uses: step-security/go-test-action@v1
 ```
 
 ### Coverage
@@ -106,7 +106,7 @@ Use the `cover` input as a shortcut to append `-cover`:
 
 ```yaml
 - name: Test
-  uses: step-security/go-test-action@v0
+  uses: step-security/go-test-action@v1
   with:
     cover: true
 ```
@@ -115,7 +115,7 @@ Or pass a coverage flag directly via `testArguments`:
 
 ```yaml
 - name: Test
-  uses: step-security/go-test-action@v0
+  uses: step-security/go-test-action@v1
   with:
     testArguments: '-coverprofile=coverage.out ./...'
 ```
@@ -124,7 +124,7 @@ Or pass a coverage flag directly via `testArguments`:
 
 ```yaml
 - name: Test
-  uses: step-security/go-test-action@v0
+  uses: step-security/go-test-action@v1
   with:
     fromJSONFiles: |
       /path/to/pkg1-test2json.json
@@ -137,7 +137,7 @@ See [Inputs](#inputs) above for valid options
 
 ```yaml
 - name: Test
-  uses: step-security/go-test-action@v0
+  uses: step-security/go-test-action@v1
   with:
     omit: |
       pie
@@ -148,7 +148,7 @@ or
 
 ```yaml
 - name: Test
-  uses: step-security/go-test-action@v0
+  uses: step-security/go-test-action@v1
   with:
     omit: 'pie'
 ```
