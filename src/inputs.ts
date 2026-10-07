@@ -3,7 +3,8 @@ import * as core from '@actions/core'
 export interface Inputs {
   moduleDirectory: string
   testArguments: string[]
-  fromJSONFile: string | null
+  fromJSONFiles: string[] | null
+  cover: boolean
   omit: Set<OmitOption>
 }
 
@@ -25,7 +26,8 @@ export enum OmitOption {
 export const defaultInputs = (): Inputs => ({
   moduleDirectory: '.',
   testArguments: ['./...'],
-  fromJSONFile: null,
+  fromJSONFiles: null,
+  cover: false,
   omit: new Set(),
 })
 
@@ -51,8 +53,27 @@ export function getInputs(): Inputs {
   }
 
   const fromJSONFile = core.getInput('fromJSONFile')
+  const fromJSONFiles = core.getInput('fromJSONFiles')
+
+  if (fromJSONFile && fromJSONFiles) {
+    throw new Error(
+      'Cannot specify both fromJSONFile and fromJSONFiles. Use fromJSONFiles for multiple files.'
+    )
+  }
+
   if (fromJSONFile) {
-    inputs.fromJSONFile = fromJSONFile
+    inputs.fromJSONFiles = [fromJSONFile]
+  }
+
+  if (fromJSONFiles) {
+    inputs.fromJSONFiles = fromJSONFiles
+      .split('\n')
+      .map(f => f.trim())
+      .filter(f => f.length > 0)
+  }
+
+  if (core.getInput('cover') && core.getBooleanInput('cover')) {
+    inputs.cover = true
   }
 
   const omit = core.getInput('omit')
